@@ -27,7 +27,7 @@ public class FoodListFrame extends JFrame {
         UiStyle.prepare();
         this.foodService = new FoodService();
 
-        setTitle("EcoBite - " + heading);
+        setTitle(UITheme.APP_NAME);
         setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
         setSize(1320, 760);
         setMinimumSize(new Dimension(980, 620));

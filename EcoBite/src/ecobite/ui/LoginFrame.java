@@ -20,7 +20,7 @@ public class LoginFrame extends JFrame {
         this.userService = new UserService();
         ensureDefaultAdminExists();
 
-        setTitle("EcoBite | Food Waste Rescue System");
+        setTitle(UITheme.APP_NAME);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setSize(1040, 680);
         setMinimumSize(new Dimension(900, 600));
@@ -60,12 +60,12 @@ public class LoginFrame extends JFrame {
         eyebrow.setForeground(UITheme.BRAND);
         eyebrow.setAlignmentX(Component.LEFT_ALIGNMENT);
 
-        JLabel brand = new JLabel("ECOBITE");
-        brand.setFont(UITheme.TITLE_FONT);
+        JLabel brand = new JLabel("<html>EcoBite - A Two Tier<br>Food Rescue Project</html>");
+        brand.setFont(new Font("SansSerif", Font.BOLD, 27));
         brand.setForeground(UITheme.TEXT);
         brand.setAlignmentX(Component.LEFT_ALIGNMENT);
 
-        JLabel product = new JLabel("Food Waste Rescue System");
+        JLabel product = new JLabel("Community Food Rescue");
         product.setFont(UITheme.SECTION_FONT);
         product.setForeground(UITheme.MUTED);
         product.setAlignmentX(Component.LEFT_ALIGNMENT);

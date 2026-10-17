@@ -28,7 +28,7 @@ public class HistoryFrame extends JFrame {
         foodService = new FoodService();
         requestService = new FoodRequestService();
 
-        setTitle("EcoBite - Food Rescue History");
+        setTitle(UITheme.APP_NAME);
         setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
         setSize(1420, 780);
         setMinimumSize(new Dimension(1050, 640));

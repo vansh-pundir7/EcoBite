@@ -1,4 +1,4 @@
-# EcoBite - Food Waste Rescue System
+# EcoBite - A Two Tier Food Rescue Project
 
 This project is a Java Swing desktop application for managing food waste rescue activities.
 
@@ -17,7 +17,7 @@ This project is a Java Swing desktop application for managing food waste rescue 
 From the project root:
 
 ```bash
-javac --release 17 -d out src/ecobite/Main.java
+javac --release 17 -sourcepath src -d out src/ecobite/Main.java
 ```
 
 ## Run

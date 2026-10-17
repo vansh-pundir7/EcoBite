@@ -15,15 +15,13 @@ public class RequestsFrame extends JFrame {
     private JTable table;
 
     public RequestsFrame() {
-        setTitle("EcoBite - Requests");
-        setSize(720, 420);
+        LegacyUiStyle.prepare();
+        setSize(1040, 620);
+        setMinimumSize(new Dimension(860, 520));
         setLocationRelativeTo(null);
         setLayout(new BorderLayout());
 
-        JLabel title = new JLabel("PENDING REQUESTS", SwingConstants.CENTER);
-        title.setFont(new Font("Arial", Font.BOLD, 18));
-        title.setBorder(BorderFactory.createEmptyBorder(10, 0, 5, 0));
-        add(title, BorderLayout.NORTH);
+        add(LegacyUiStyle.createHeader("Pending Requests"), BorderLayout.NORTH);
 
         model = new DefaultTableModel(
                 new String[]{"Req ID", "Food", "Qty (KG)", "Name", "Organization", "Phone"}, 0) {
@@ -49,6 +47,7 @@ public class RequestsFrame extends JFrame {
         refreshBtn.addActionListener(e -> loadRequests());
 
         loadRequests();
+        LegacyUiStyle.styleFrame(this);
     }
 
     private void loadRequests() {
@@ -74,7 +73,8 @@ public class RequestsFrame extends JFrame {
     private void updateStatus(String reqStatus, String foodStatus) {
         int row = table.getSelectedRow();
         if (row < 0) {
-            JOptionPane.showMessageDialog(this, "Pehle request select karo!");
+            JOptionPane.showMessageDialog(this, "Select a request from the table first.",
+                    "No Request Selected", JOptionPane.WARNING_MESSAGE);
             return;
         }
         int reqId = (int) model.getValueAt(row, 0);

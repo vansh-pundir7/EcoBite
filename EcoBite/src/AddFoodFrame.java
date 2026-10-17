@@ -15,18 +15,16 @@ public class AddFoodFrame extends JFrame {
     private JTextField hoursField = new JTextField("4", 15);
 
     public AddFoodFrame() {
-        setTitle("EcoBite - Add Food");
-        setSize(400, 310);
+        LegacyUiStyle.prepare();
+        setSize(620, 460);
+        setMinimumSize(new Dimension(560, 420));
         setLocationRelativeTo(null);
         setLayout(new BorderLayout());
 
-        JLabel title = new JLabel("ADD FOOD", SwingConstants.CENTER);
-        title.setFont(new Font("Arial", Font.BOLD, 18));
-        title.setBorder(BorderFactory.createEmptyBorder(15, 0, 5, 0));
-        add(title, BorderLayout.NORTH);
+        add(LegacyUiStyle.createHeader("Add Food"), BorderLayout.NORTH);
 
-        JPanel form = new JPanel(new GridLayout(4, 2, 8, 12));
-        form.setBorder(BorderFactory.createEmptyBorder(10, 40, 10, 40));
+        JPanel form = new JPanel(new GridLayout(4, 2, 12, 18));
+        form.setBorder(BorderFactory.createEmptyBorder(24, 48, 24, 48));
         form.add(new JLabel("Food Name:"));       form.add(nameField);
         form.add(new JLabel("Quantity (KG):"));   form.add(qtyField);
         form.add(new JLabel("Food Type:"));       form.add(typeBox);
@@ -35,17 +33,18 @@ public class AddFoodFrame extends JFrame {
 
         JButton saveBtn = new JButton("SAVE FOOD");
         JPanel bottom = new JPanel();
-        bottom.setBorder(BorderFactory.createEmptyBorder(5, 0, 15, 0));
+        bottom.setBorder(BorderFactory.createEmptyBorder(0, 0, 24, 0));
         bottom.add(saveBtn);
         add(bottom, BorderLayout.SOUTH);
 
         saveBtn.addActionListener(e -> saveFood());
+        LegacyUiStyle.styleFrame(this);
     }
 
     private void saveFood() {
         String name = nameField.getText().trim();
         if (name.isEmpty()) {
-            msg("Food name likho!");
+            msg("Enter a food name.");
             return;
         }
 
@@ -53,17 +52,17 @@ public class AddFoodFrame extends JFrame {
         try {
             qty = Double.parseDouble(qtyField.getText().trim());
         } catch (NumberFormatException ex) {
-            msg("Quantity number mein likho! (jaise: 10)");
+            msg("Enter the quantity as a number (for example, 10).");
             return;
         }
         try {
             hours = Double.parseDouble(hoursField.getText().trim());
         } catch (NumberFormatException ex) {
-            msg("Expiry hours number mein likho! (jaise: 4)");
+            msg("Enter the expiry time in hours as a number (for example, 4).");
             return;
         }
         if (qty <= 0 || hours <= 0) {
-            msg("Quantity aur hours 0 se zyada hone chahiye!");
+            msg("Quantity and expiry time must be greater than zero.");
             return;
         }
 
@@ -82,11 +81,11 @@ public class AddFoodFrame extends JFrame {
             ps.setTimestamp(5, expiry);
             ps.executeUpdate();
 
-            msg("Food Added Successfully!");
+            msg("Food was added successfully.");
             nameField.setText("");
             qtyField.setText("");
         } catch (Exception ex) {
-            msg("Save nahi hua: " + ex.getMessage());
+            msg("Unable to save the food: " + ex.getMessage());
         }
     }
 

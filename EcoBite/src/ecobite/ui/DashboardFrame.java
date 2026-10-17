@@ -32,7 +32,7 @@ public class DashboardFrame extends JFrame {
         this.statisticValues = new LinkedHashMap<>();
         this.statisticDetails = new LinkedHashMap<>();
 
-        setTitle("EcoBite | Food Rescue Analytics");
+        setTitle(UITheme.APP_NAME);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setSize(1280, 860);
         setMinimumSize(new Dimension(1100, 720));

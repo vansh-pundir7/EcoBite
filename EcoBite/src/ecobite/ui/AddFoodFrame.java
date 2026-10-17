@@ -29,7 +29,7 @@ public class AddFoodFrame extends JFrame {
         UiStyle.prepare();
         this.foodService = new FoodService();
 
-        setTitle("EcoBite - Add Food");
+        setTitle(UITheme.APP_NAME);
         setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
         setSize(780, 680);
         setMinimumSize(new Dimension(680, 620));

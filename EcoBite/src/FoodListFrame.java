@@ -19,15 +19,13 @@ public class FoodListFrame extends JFrame {
     private List<Timestamp> expiries = new ArrayList<>();   // har row ka expiry time
 
     public FoodListFrame() {
-        setTitle("EcoBite - Available Food (Human)");
-        setSize(680, 420);
+        LegacyUiStyle.prepare();
+        setSize(980, 620);
+        setMinimumSize(new Dimension(820, 520));
         setLocationRelativeTo(null);
         setLayout(new BorderLayout());
 
-        JLabel title = new JLabel("AVAILABLE FOOD (HUMAN)", SwingConstants.CENTER);
-        title.setFont(new Font("Arial", Font.BOLD, 18));
-        title.setBorder(BorderFactory.createEmptyBorder(10, 0, 5, 0));
-        add(title, BorderLayout.NORTH);
+        add(LegacyUiStyle.createHeader("Available Human Food"), BorderLayout.NORTH);
 
         model = new DefaultTableModel(
                 new String[]{"ID", "Food", "Qty (KG)", "Time Left", "Status"}, 0) {
@@ -53,6 +51,7 @@ public class FoodListFrame extends JFrame {
 
         // TIMER: har 1 second
         new Timer(1000, e -> tick()).start();
+        LegacyUiStyle.styleFrame(this);
     }
 
     private void loadFood() {
@@ -112,7 +111,8 @@ public class FoodListFrame extends JFrame {
     private void requestFood() {
         int row = table.getSelectedRow();
         if (row < 0) {
-            JOptionPane.showMessageDialog(this, "Pehle table mein food select karo!");
+            JOptionPane.showMessageDialog(this, "Select a food item from the table first.",
+                    "No Food Selected", JOptionPane.WARNING_MESSAGE);
             return;
         }
         int foodId = (int) model.getValueAt(row, 0);

@@ -12,15 +12,13 @@ public class HistoryFrame extends JFrame {
     private DefaultTableModel model;
 
     public HistoryFrame() {
-        setTitle("EcoBite - History");
-        setSize(650, 400);
+        LegacyUiStyle.prepare();
+        setSize(900, 580);
+        setMinimumSize(new Dimension(760, 480));
         setLocationRelativeTo(null);
         setLayout(new BorderLayout());
 
-        JLabel title = new JLabel("HISTORY", SwingConstants.CENTER);
-        title.setFont(new Font("Arial", Font.BOLD, 18));
-        title.setBorder(BorderFactory.createEmptyBorder(10, 0, 5, 0));
-        add(title, BorderLayout.NORTH);
+        add(LegacyUiStyle.createHeader("Food Rescue History"), BorderLayout.NORTH);
 
         model = new DefaultTableModel(
                 new String[]{"ID", "Food", "Qty (KG)", "Type", "Status"}, 0) {
@@ -40,6 +38,7 @@ public class HistoryFrame extends JFrame {
         refreshBtn.addActionListener(e -> loadHistory());
 
         loadHistory();
+        LegacyUiStyle.styleFrame(this);
     }
 
     private void loadHistory() {

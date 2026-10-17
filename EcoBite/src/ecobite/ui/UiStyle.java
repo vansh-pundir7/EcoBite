@@ -30,8 +30,8 @@ final class UiStyle {
         JPanel brandBlock = new JPanel();
         brandBlock.setOpaque(false);
         brandBlock.setLayout(new BoxLayout(brandBlock, BoxLayout.Y_AXIS));
-        JLabel brandLabel = new JLabel("ECOBITE");
-        brandLabel.setFont(new Font("SansSerif", Font.BOLD, 22));
+        JLabel brandLabel = new JLabel("<html>EcoBite - A Two Tier<br>Food Rescue Project</html>");
+        brandLabel.setFont(new Font("SansSerif", Font.BOLD, 16));
         brandLabel.setForeground(BRAND);
         JLabel subtitleLabel = new JLabel("Food Waste Rescue System");
         subtitleLabel.setFont(UITheme.SMALL_FONT);

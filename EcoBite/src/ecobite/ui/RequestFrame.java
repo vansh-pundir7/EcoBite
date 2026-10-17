@@ -35,7 +35,7 @@ public class RequestFrame extends JFrame {
         requestService = new FoodRequestService();
         displayedRequests = new ArrayList<>();
 
-        setTitle("EcoBite - NGO Food Requests");
+        setTitle(UITheme.APP_NAME);
         setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
         setSize(1240, 800);
         setMinimumSize(new Dimension(1000, 680));

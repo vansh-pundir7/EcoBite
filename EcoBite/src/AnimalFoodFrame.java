@@ -17,15 +17,13 @@ public class AnimalFoodFrame extends JFrame {
     private JTable table;
 
     public AnimalFoodFrame() {
-        setTitle("EcoBite - Animal Food");
-        setSize(680, 420);
+        LegacyUiStyle.prepare();
+        setSize(980, 620);
+        setMinimumSize(new Dimension(820, 520));
         setLocationRelativeTo(null);
         setLayout(new BorderLayout());
 
-        JLabel title = new JLabel("ANIMAL FOOD", SwingConstants.CENTER);
-        title.setFont(new Font("Arial", Font.BOLD, 18));
-        title.setBorder(BorderFactory.createEmptyBorder(10, 0, 5, 0));
-        add(title, BorderLayout.NORTH);
+        add(LegacyUiStyle.createHeader("Animal Food Rescue"), BorderLayout.NORTH);
 
         model = new DefaultTableModel(
                 new String[]{"ID", "Food", "Qty (KG)", "Type", "Status"}, 0) {
@@ -54,6 +52,7 @@ public class AnimalFoodFrame extends JFrame {
         refreshBtn.addActionListener(e -> loadFood());
 
         loadFood();
+        LegacyUiStyle.styleFrame(this);
     }
 
     private void loadFood() {
@@ -83,7 +82,8 @@ public class AnimalFoodFrame extends JFrame {
     private int selectedFoodId() {
         int row = table.getSelectedRow();
         if (row < 0) {
-            JOptionPane.showMessageDialog(this, "Pehle table mein food select karo!");
+            JOptionPane.showMessageDialog(this, "Select a food item from the table first.",
+                    "No Food Selected", JOptionPane.WARNING_MESSAGE);
             return -1;
         }
         return (int) model.getValueAt(row, 0);
@@ -100,11 +100,12 @@ public class AnimalFoodFrame extends JFrame {
         }
         if (!selectedStatus().equals("AVAILABLE")) {
             JOptionPane.showMessageDialog(this,
-                    "Sirf AVAILABLE animal food shelter ko assign ho sakta hai!");
+                    "Only available animal food can be assigned to a shelter.");
             return;
         }
 
-        String shelter = JOptionPane.showInputDialog(this, "Shelter ka naam:");
+        String shelter = JOptionPane.showInputDialog(this, "Enter the shelter name:", "Assign to Shelter",
+                JOptionPane.QUESTION_MESSAGE);
         if (shelter == null || shelter.trim().isEmpty()) {
             return;
         }
@@ -121,7 +122,8 @@ public class AnimalFoodFrame extends JFrame {
             ps.setInt(1, foodId);
             ps.executeUpdate();
 
-            JOptionPane.showMessageDialog(this, "Shelter Assigned! Status: COMPLETED");
+            JOptionPane.showMessageDialog(this, "The food was assigned to the shelter.",
+                    "Shelter Assignment Complete", JOptionPane.INFORMATION_MESSAGE);
             loadFood();
         } catch (Exception ex) {
             JOptionPane.showMessageDialog(this, "Error: " + ex.getMessage());
@@ -135,7 +137,7 @@ public class AnimalFoodFrame extends JFrame {
         }
         if (!selectedStatus().equals("ANIMAL_REVIEW")) {
             JOptionPane.showMessageDialog(this,
-                    "Sirf ANIMAL_REVIEW wala food check kar sakte ho!");
+                    "Only food marked for animal review can be assessed.");
             return;
         }
         try (Connection con = DB.get();
@@ -143,7 +145,7 @@ public class AnimalFoodFrame extends JFrame {
                      "UPDATE food SET type='ANIMAL', status='AVAILABLE' WHERE id=?")) {
             ps.setInt(1, foodId);
             ps.executeUpdate();
-            JOptionPane.showMessageDialog(this, "Food ab ANIMAL category mein AVAILABLE hai!");
+            JOptionPane.showMessageDialog(this, "The food is now available in the animal category.");
             loadFood();
         } catch (Exception ex) {
             JOptionPane.showMessageDialog(this, "Error: " + ex.getMessage());
@@ -160,7 +162,7 @@ public class AnimalFoodFrame extends JFrame {
                      "UPDATE food SET status='DISCARDED' WHERE id=?")) {
             ps.setInt(1, foodId);
             ps.executeUpdate();
-            JOptionPane.showMessageDialog(this, "Food DISCARDED!");
+            JOptionPane.showMessageDialog(this, "The food was discarded.");
             loadFood();
         } catch (Exception ex) {
             JOptionPane.showMessageDialog(this, "Error: " + ex.getMessage());

@@ -11,6 +11,8 @@ import java.awt.event.FocusAdapter;
 import java.awt.event.FocusEvent;
 
 public final class UITheme {
+    public static final String APP_NAME = "EcoBite - A Two Tier Food Rescue Project";
+
     public static final Color BACKGROUND = new Color(13, 24, 21);
     public static final Color BACKGROUND_RAISED = new Color(18, 34, 29);
     public static final Color SURFACE = new Color(24, 43, 36);

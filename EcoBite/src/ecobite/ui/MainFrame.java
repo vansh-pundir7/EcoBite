@@ -6,7 +6,7 @@ import java.awt.*;
 public class MainFrame extends JFrame {
     public MainFrame() {
         UiStyle.prepare();
-        setTitle("EcoBite - Food Waste Rescue System");
+        setTitle(UITheme.APP_NAME);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setSize(1040, 700);
         setMinimumSize(new Dimension(820, 580));

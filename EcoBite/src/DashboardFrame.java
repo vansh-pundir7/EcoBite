@@ -16,16 +16,14 @@ public class DashboardFrame extends JFrame {
     private JLabel doneLbl    = new JLabel();
 
     public DashboardFrame() {
-        setTitle("EcoBite - Dashboard");
-        setSize(420, 430);
+        LegacyUiStyle.prepare();
+        setSize(760, 700);
+        setMinimumSize(new Dimension(680, 620));
         setDefaultCloseOperation(EXIT_ON_CLOSE);
         setLocationRelativeTo(null);
         setLayout(new BorderLayout(10, 10));
 
-        JLabel title = new JLabel("ECOBITE DASHBOARD", SwingConstants.CENTER);
-        title.setFont(new Font("Arial", Font.BOLD, 20));
-        title.setBorder(BorderFactory.createEmptyBorder(15, 0, 5, 0));
-        add(title, BorderLayout.NORTH);
+        add(LegacyUiStyle.createHeader("Dashboard"), BorderLayout.NORTH);
 
         JPanel stats = new JPanel(new GridLayout(5, 1, 5, 5));
         stats.setBorder(BorderFactory.createEmptyBorder(10, 50, 10, 50));
@@ -71,6 +69,7 @@ public class DashboardFrame extends JFrame {
                 loadCounts();
             }
         });
+        LegacyUiStyle.styleFrame(this);
     }
 
     private void loadCounts() {

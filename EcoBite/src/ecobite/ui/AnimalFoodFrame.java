@@ -35,7 +35,7 @@ public class AnimalFoodFrame extends JFrame {
         requestService = new FoodRequestService();
         displayedShelterRequests = new ArrayList<>();
 
-        setTitle("EcoBite - Animal Food Rescue");
+        setTitle(UITheme.APP_NAME);
         setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
         setSize(1240, 800);
         setMinimumSize(new Dimension(1000, 680));
