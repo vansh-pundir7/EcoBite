@@ -1,150 +1,186 @@
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
 import java.awt.*;
-import java.sql.*;
+import java.awt.event.WindowAdapter;
+import java.awt.event.WindowEvent;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.List;
 
-// ============================================
-// SCREEN 4: AVAILABLE FOOD (HUMAN) + TIMER
-// Har second countdown update hota hai.
-// Time khatam -> status ANIMAL_REVIEW
-// (automatically "animal safe" NAHI bolte -
-//  responsible person review karega)
-// ============================================
+/** Lists available human food and updates countdowns without repeated database calls. */
 public class FoodListFrame extends JFrame {
 
-    private DefaultTableModel model;
-    private JTable table;
-    private List<Timestamp> expiries = new ArrayList<>();   // har row ka expiry time
+    private final DefaultTableModel model = new DefaultTableModel(
+            new String[]{"ID", "Food", "Qty (KG)", "Time Left", "Status"}, 0) {
+        @Override
+        public boolean isCellEditable(int row, int column) {
+            return false;
+        }
+    };
+    private final JTable table = new JTable(model);
+    private final List<Timestamp> expiries = new ArrayList<>();
+    private final JPanel tableArea = new JPanel(new CardLayout());
+    private final Timer countdownTimer;
 
+    /** Creates the available-food table and local countdown timer. */
     public FoodListFrame() {
         LegacyUiStyle.prepare();
         setSize(980, 620);
         setMinimumSize(new Dimension(820, 520));
+        setDefaultCloseOperation(DISPOSE_ON_CLOSE);
         setLocationRelativeTo(null);
         setLayout(new BorderLayout());
-
         add(LegacyUiStyle.createHeader("Available Human Food"), BorderLayout.NORTH);
+        tableArea.add(new JScrollPane(table), "table");
+        JLabel empty = new JLabel("No food available", SwingConstants.CENTER);
+        empty.setForeground(LegacyUiStyle.MUTED);
+        LegacyUiStyle.preserveLabelStyle(empty);
+        tableArea.add(empty, "empty");
+        add(tableArea, BorderLayout.CENTER);
 
-        model = new DefaultTableModel(
-                new String[]{"ID", "Food", "Qty (KG)", "Time Left", "Status"}, 0) {
-            public boolean isCellEditable(int r, int c) {
-                return false;
-            }
-        };
-        table = new JTable(model);
-        add(new JScrollPane(table), BorderLayout.CENTER);
-
-        JButton reqBtn = new JButton("REQUEST SELECTED FOOD");
-        JButton refBtn = new JButton("REFRESH");
+        JButton request = new JButton("REQUEST SELECTED FOOD");
+        LegacyUiStyle.setButtonStyle(request, "primary");
+        JButton refresh = new JButton("REFRESH");
         JPanel bottom = new JPanel();
-        bottom.setBorder(BorderFactory.createEmptyBorder(5, 0, 10, 0));
-        bottom.add(reqBtn);
-        bottom.add(refBtn);
+        bottom.add(request);
+        bottom.add(refresh);
         add(bottom, BorderLayout.SOUTH);
+        request.addActionListener(event -> requestFood());
+        refresh.addActionListener(event -> loadFood());
 
-        reqBtn.addActionListener(e -> requestFood());
-        refBtn.addActionListener(e -> loadFood());
-
+        countdownTimer = new Timer(1000, event -> updateCountdowns());
+        countdownTimer.start();
+        addWindowListener(new WindowAdapter() {
+            /** Stops this window's local timer after it closes. */
+            @Override
+            public void windowClosed(WindowEvent event) {
+                countdownTimer.stop();
+            }
+        });
         loadFood();
-
-        // TIMER: har 1 second
-        new Timer(1000, e -> tick()).start();
         LegacyUiStyle.styleFrame(this);
     }
 
+    /** Reloads the list of human food that is currently available. */
     private void loadFood() {
         model.setRowCount(0);
         expiries.clear();
         String sql = "SELECT id, food_name, quantity, expiry_time, status FROM food "
-                   + "WHERE type='HUMAN' AND status='AVAILABLE' ORDER BY expiry_time";
-        try (Connection con = DB.get();
-             Statement st = con.createStatement();
-             ResultSet rs = st.executeQuery(sql)) {
-
-            while (rs.next()) {
-                Timestamp exp = rs.getTimestamp("expiry_time");
-                expiries.add(exp);
-                model.addRow(new Object[]{
-                        rs.getInt("id"),
-                        rs.getString("food_name"),
-                        rs.getDouble("quantity"),
-                        timeLeft(exp),
-                        rs.getString("status")
-                });
+                + "WHERE type='HUMAN' AND status='AVAILABLE' ORDER BY expiry_time";
+        try (Connection connection = DB.get();
+             PreparedStatement statement = connection.prepareStatement(sql);
+             ResultSet results = statement.executeQuery()) {
+            while (results.next()) {
+                Timestamp expiry = results.getTimestamp("expiry_time");
+                expiries.add(expiry);
+                model.addRow(new Object[]{results.getInt("id"), results.getString("food_name"),
+                        results.getDouble("quantity"), formatTimeLeft(expiry, System.currentTimeMillis()),
+                        results.getString("status")});
             }
+            ((CardLayout) tableArea.getLayout()).show(tableArea,
+                    model.getRowCount() == 0 ? "empty" : "table");
         } catch (Exception ex) {
-            JOptionPane.showMessageDialog(this, "Load error: " + ex.getMessage());
+            System.err.println("EcoBite food list load failed: " + ex.getMessage());
+            showDatabaseError();
         }
     }
 
-    // har second call hota hai
-    private void tick() {
-        // 1. expired human food ko ANIMAL_REVIEW banao
-        try (Connection con = DB.get();
-             Statement st = con.createStatement()) {
-            int changed = st.executeUpdate(
-                    "UPDATE food SET status='ANIMAL_REVIEW' "
-                    + "WHERE type='HUMAN' AND status='AVAILABLE' AND expiry_time < NOW()");
-            if (changed > 0) {
-                loadFood();   // list refresh
-                return;
-            }
-        } catch (Exception ignored) {
-        }
-
-        // 2. countdown column update karo
-        for (int i = 0; i < expiries.size() && i < model.getRowCount(); i++) {
-            model.setValueAt(timeLeft(expiries.get(i)), i, 3);
+    /** Refreshes only the countdown text using timestamps already loaded in memory. */
+    private void updateCountdowns() {
+        long now = System.currentTimeMillis();
+        for (int row = 0; row < expiries.size(); row++) {
+            model.setValueAt(formatTimeLeft(expiries.get(row), now), row, 3);
         }
     }
 
-    private String timeLeft(Timestamp exp) {
-        long sec = (exp.getTime() - System.currentTimeMillis()) / 1000;
-        if (sec <= 0) {
+    /** Formats the time remaining until an item expires. */
+    static String formatTimeLeft(Timestamp expiry, long now) {
+        long seconds = (expiry.getTime() - now) / 1000;
+        if (seconds <= 0) {
             return "TIME FINISHED";
         }
-        return String.format("%02d:%02d:%02d", sec / 3600, (sec % 3600) / 60, sec % 60);
+        return String.format("%02d:%02d:%02d",
+                seconds / 3600, (seconds % 3600) / 60, seconds % 60);
     }
 
+    /** Collects NGO details and saves the request and food status atomically. */
     private void requestFood() {
         int row = table.getSelectedRow();
         if (row < 0) {
-            JOptionPane.showMessageDialog(this, "Select a food item from the table first.",
+            JOptionPane.showMessageDialog(this, "Select a food item first.",
                     "No Food Selected", JOptionPane.WARNING_MESSAGE);
             return;
         }
-        int foodId = (int) model.getValueAt(row, 0);
-
-        JTextField name  = new JTextField();
-        JTextField org   = new JTextField();
-        JTextField phone = new JTextField();
-        Object[] fields = {"Name:", name, "Organization (NGO):", org, "Phone:", phone};
-        int ok = JOptionPane.showConfirmDialog(this, fields,
-                "Request Food", JOptionPane.OK_CANCEL_OPTION);
-        if (ok != JOptionPane.OK_OPTION) {
+        int foodId = (int) model.getValueAt(table.convertRowIndexToModel(row), 0);
+        JTextField name = new JTextField(18);
+        JTextField organization = new JTextField(18);
+        JTextField phone = new JTextField(18);
+        JPanel fields = new JPanel(new GridLayout(3, 2, 8, 8));
+        fields.add(new JLabel("Receiver name"));
+        fields.add(name);
+        fields.add(new JLabel("Organization"));
+        fields.add(organization);
+        fields.add(new JLabel("Phone (10 digits)"));
+        fields.add(phone);
+        int answer = JOptionPane.showConfirmDialog(this, fields, "Request Food",
+                JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE);
+        if (answer != JOptionPane.OK_OPTION) {
             return;
         }
+        String error = Validator.required(name.getText(), "Name");
+        if (error == null) {
+            error = Validator.required(organization.getText(), "Organization");
+        }
+        if (error == null) {
+            error = Validator.phone(phone.getText().trim());
+        }
+        if (error != null) {
+            JOptionPane.showMessageDialog(this, error, "Check Details", JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+        saveRequest(foodId, name.getText().trim(), organization.getText().trim(), phone.getText().trim());
+    }
 
-        try (Connection con = DB.get()) {
-            PreparedStatement ps = con.prepareStatement(
+    /** Inserts a request and marks its food requested in one transaction. */
+    private void saveRequest(int foodId, String name, String organization, String phone) {
+        try (Connection connection = DB.get()) {
+            connection.setAutoCommit(false);
+            try (PreparedStatement insert = connection.prepareStatement(
                     "INSERT INTO requests (food_id, receiver_name, organization, phone, status) "
-                    + "VALUES (?, ?, ?, ?, 'PENDING')");
-            ps.setInt(1, foodId);
-            ps.setString(2, name.getText().trim());
-            ps.setString(3, org.getText().trim());
-            ps.setString(4, phone.getText().trim());
-            ps.executeUpdate();
-
-            ps = con.prepareStatement("UPDATE food SET status='REQUESTED' WHERE id=?");
-            ps.setInt(1, foodId);
-            ps.executeUpdate();
-
-            JOptionPane.showMessageDialog(this, "Request Saved! Status: PENDING");
+                            + "VALUES (?, ?, ?, ?, 'PENDING')");
+                 PreparedStatement update = connection.prepareStatement(
+                         "UPDATE food SET status='REQUESTED' "
+                                 + "WHERE id=? AND type='HUMAN' AND status='AVAILABLE'")) {
+                update.setInt(1, foodId);
+                if (update.executeUpdate() != 1) {
+                    throw new IllegalStateException("This food is no longer available.");
+                }
+                insert.setInt(1, foodId);
+                insert.setString(2, name);
+                insert.setString(3, organization);
+                insert.setString(4, phone);
+                insert.executeUpdate();
+                connection.commit();
+            } catch (Exception ex) {
+                connection.rollback();
+                throw ex;
+            }
+            JOptionPane.showMessageDialog(this, "Request saved with status PENDING.");
             loadFood();
         } catch (Exception ex) {
-            JOptionPane.showMessageDialog(this, "Request error: " + ex.getMessage());
+            System.err.println("EcoBite request could not be saved: " + ex.getMessage());
+            JOptionPane.showMessageDialog(this, "Unable to save the request. " + ex.getMessage(),
+                    "Request Error", JOptionPane.ERROR_MESSAGE);
         }
+    }
+
+    /** Shows a friendly database connection message. */
+    private void showDatabaseError() {
+        JOptionPane.showMessageDialog(this,
+                "Unable to load food. Check that MySQL is running and db.properties is correct.",
+                "Database Connection Problem", JOptionPane.ERROR_MESSAGE);
     }
 }

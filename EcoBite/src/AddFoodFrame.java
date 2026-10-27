@@ -1,95 +1,118 @@
 import javax.swing.*;
 import java.awt.*;
-import java.sql.*;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.Timestamp;
 
-// ============================================
-// SCREEN 3: ADD FOOD Hoga
-// Prepared time = abhi ka time (automatic)
-// Expiry = kitne ghante baad kharab hoga
-// ============================================
+/** Collects and saves a new food donation. */
 public class AddFoodFrame extends JFrame {
 
-    private JTextField nameField = new JTextField(15);
-    private JTextField qtyField  = new JTextField(15);
-    private JComboBox<String> typeBox = new JComboBox<>(new String[]{"HUMAN", "ANIMAL"});
-    private JTextField hoursField = new JTextField("4", 15);
+    private final JTextField nameField = new JTextField(20);
+    private final JTextField quantityField = new JTextField(20);
+    private final JComboBox<String> typeBox = new JComboBox<>(new String[]{"HUMAN", "ANIMAL"});
+    private final JTextField hoursField = new JTextField("4", 20);
 
+    /** Creates the aligned food form and its short guidance hints. */
     public AddFoodFrame() {
         LegacyUiStyle.prepare();
-        setSize(620, 460);
-        setMinimumSize(new Dimension(560, 420));
+        setSize(680, 540);
+        setMinimumSize(new Dimension(580, 480));
+        setDefaultCloseOperation(DISPOSE_ON_CLOSE);
         setLocationRelativeTo(null);
         setLayout(new BorderLayout());
-
         add(LegacyUiStyle.createHeader("Add Food"), BorderLayout.NORTH);
 
-        JPanel form = new JPanel(new GridLayout(4, 2, 12, 18));
-        form.setBorder(BorderFactory.createEmptyBorder(24, 48, 24, 48));
-        form.add(new JLabel("Food Name:"));       form.add(nameField);
-        form.add(new JLabel("Quantity (KG):"));   form.add(qtyField);
-        form.add(new JLabel("Food Type:"));       form.add(typeBox);
-        form.add(new JLabel("Expiry (hours):"));  form.add(hoursField);
-        add(form, BorderLayout.CENTER);
+        JPanel form = new JPanel(new GridBagLayout());
+        form.setBorder(BorderFactory.createEmptyBorder(14, 36, 14, 36));
+        addField(form, 0, "Food name", nameField, "Up to 50 characters.");
+        addField(form, 1, "Quantity (KG)", quantityField, "Enter a value greater than 0.");
+        addField(form, 2, "Food type", typeBox, "Choose human or animal food.");
+        addField(form, 3, "Expiry (hours)", hoursField, "Human food is reviewed after expiry.");
+        JPanel center = new JPanel(new BorderLayout());
+        center.add(LegacyUiStyle.createIntro(
+                "Create a food listing", "Add clear details to help food reach the right place."),
+                BorderLayout.NORTH);
+        center.add(form, BorderLayout.CENTER);
+        add(center, BorderLayout.CENTER);
 
-        JButton saveBtn = new JButton("SAVE FOOD");
+        JButton save = new JButton("SAVE FOOD");
+        LegacyUiStyle.setButtonStyle(save, "primary");
         JPanel bottom = new JPanel();
-        bottom.setBorder(BorderFactory.createEmptyBorder(0, 0, 24, 0));
-        bottom.add(saveBtn);
+        bottom.setBorder(BorderFactory.createEmptyBorder(0, 0, 20, 0));
+        bottom.add(save);
         add(bottom, BorderLayout.SOUTH);
-
-        saveBtn.addActionListener(e -> saveFood());
+        save.addActionListener(event -> saveFood());
         LegacyUiStyle.styleFrame(this);
     }
 
+    /** Adds one aligned editor row with a short hint below it. */
+    private void addField(JPanel form, int row, String title, JComponent field, String hint) {
+        GridBagConstraints c = new GridBagConstraints();
+        c.insets = new Insets(6, 6, 3, 6);
+        c.anchor = GridBagConstraints.LINE_START;
+        c.gridx = 0;
+        c.gridy = row * 2;
+        form.add(new JLabel(title + ":"), c);
+        c.gridx = 1;
+        c.fill = GridBagConstraints.HORIZONTAL;
+        c.weightx = 1;
+        form.add(field, c);
+        JLabel hintLabel = new JLabel(hint);
+        hintLabel.setForeground(LegacyUiStyle.MUTED);
+        hintLabel.setFont(new Font("SansSerif", Font.PLAIN, 12));
+        LegacyUiStyle.preserveLabelStyle(hintLabel);
+        c.gridy++;
+        form.add(hintLabel, c);
+    }
+
+    /** Validates and inserts the new donation. */
     private void saveFood() {
         String name = nameField.getText().trim();
-        if (name.isEmpty()) {
-            msg("Enter a food name.");
+        String error = Validator.foodName(name);
+        if (error == null) {
+            error = Validator.quantity(quantityField.getText());
+        }
+        if (error != null) {
+            showMessage(error, JOptionPane.WARNING_MESSAGE);
             return;
         }
-
-        double qty, hours;
-        try {
-            qty = Double.parseDouble(qtyField.getText().trim());
-        } catch (NumberFormatException ex) {
-            msg("Enter the quantity as a number (for example, 10).");
-            return;
-        }
+        double quantity = Double.parseDouble(quantityField.getText().trim());
+        double hours;
         try {
             hours = Double.parseDouble(hoursField.getText().trim());
         } catch (NumberFormatException ex) {
-            msg("Enter the expiry time in hours as a number (for example, 4).");
+            showMessage("Expiry time must be a number of hours.", JOptionPane.WARNING_MESSAGE);
             return;
         }
-        if (qty <= 0 || hours <= 0) {
-            msg("Quantity and expiry time must be greater than zero.");
+        if (!Double.isFinite(hours) || hours <= 0 || hours > 8760) {
+            showMessage("Expiry time must be greater than 0 and no more than 8,760 hours.",
+                    JOptionPane.WARNING_MESSAGE);
             return;
         }
 
         String sql = "INSERT INTO food (food_name, quantity, type, prepared_time, expiry_time, status) "
-                   + "VALUES (?, ?, ?, ?, ?, 'AVAILABLE')";
-        try (Connection con = DB.get();
-             PreparedStatement ps = con.prepareStatement(sql)) {
-
+                + "VALUES (?, ?, ?, ?, ?, 'AVAILABLE')";
+        try (Connection connection = DB.get();
+             PreparedStatement statement = connection.prepareStatement(sql)) {
             Timestamp now = new Timestamp(System.currentTimeMillis());
-            Timestamp expiry = new Timestamp(now.getTime() + (long) (hours * 3600 * 1000));
-
-            ps.setString(1, name);
-            ps.setDouble(2, qty);
-            ps.setString(3, (String) typeBox.getSelectedItem());
-            ps.setTimestamp(4, now);
-            ps.setTimestamp(5, expiry);
-            ps.executeUpdate();
-
-            msg("Food was added successfully.");
+            statement.setString(1, name);
+            statement.setDouble(2, quantity);
+            statement.setString(3, (String) typeBox.getSelectedItem());
+            statement.setTimestamp(4, now);
+            statement.setTimestamp(5, new Timestamp(now.getTime() + (long) (hours * 3_600_000)));
+            statement.executeUpdate();
+            showMessage("Food was added successfully.", JOptionPane.INFORMATION_MESSAGE);
             nameField.setText("");
-            qtyField.setText("");
+            quantityField.setText("");
         } catch (Exception ex) {
-            msg("Unable to save the food: " + ex.getMessage());
+            System.err.println("EcoBite could not save food: " + ex.getMessage());
+            showMessage("Unable to save food. Check MySQL and the database setup.",
+                    JOptionPane.ERROR_MESSAGE);
         }
     }
 
-    private void msg(String m) {
-        JOptionPane.showMessageDialog(this, m);
+    /** Shows a concise validation or save result. */
+    private void showMessage(String message, int type) {
+        JOptionPane.showMessageDialog(this, message, "EcoBite", type);
     }
 }

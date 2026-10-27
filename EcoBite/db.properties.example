@@ -1,0 +1,3 @@
+jdbc.url=jdbc:mysql://localhost:3306/ecobite
+jdbc.user=root
+jdbc.password=your-mysql-password

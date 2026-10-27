@@ -6,6 +6,14 @@ import javax.swing.SwingUtilities;
 public class EcoBite {
 
     public static void main(String[] args) {
-        SwingUtilities.invokeLater(() -> new LoginFrame().setVisible(true));
+        SwingUtilities.invokeLater(() -> {
+            ExpiryService.start();
+            try {
+                PasswordHasher.ensureDefaultAdmin();
+            } catch (Exception ex) {
+                System.err.println("EcoBite startup database check failed: " + ex.getMessage());
+            }
+            new LoginFrame().setVisible(true);
+        });
     }
 }
